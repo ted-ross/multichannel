@@ -25,42 +25,33 @@
 
 "use strict";
 
-const express = require('express');
-const axios   = require('axios');
-const morgan  = require('morgan');
+import express from "express";
+import morgan  from "morgan";
 
-const IN_PORT  = 8000;
-const OUT_PORT = 8000;
+const IN_PORT  = 8088;
 
-const app          = express();
-const defaultHost  = 'processor';
-const countryTable = {
-    CH : 'processor-ch',
-    GB : 'processor-gb',
-};
 
-const dispatchRequest = async function(req, res) {
-    const id             = req.query.id;
-    const dispatchHeader = req.headers['x-country-code'];
-    const targetHost     = countryTable[dispatchHeader ? dispatchHeader.toUpperCase() : null] || defaultHost;
-    const url            = `http://${targetHost}:${OUT_PORT}/post_work?id=${id}`;
-    const response       = await axios.get(url);
-    res.status(response.status).send(response.data);
+export async function ApiStart() {
+    const app = express();
+    //
+    // Place the health-check before the log spec so health probes don't pollute the logs.
+    //
+    app.get('/healthz', (req, res) => {
+        res.status(200).send('Ok');
+    });
+
+    app.use(morgan(':remote-addr :remote-user :method :url :status :res[content-length] :response-time ms'));
+
+    app.get('/api', async (req, res) => {
+        res.status(200).send('Ok');
+    });
+
+    let server = app.listen(IN_PORT, () => {
+        let host = server.address().address;
+        let port = server.address().port;
+        if (host[0] == ':') {
+            host = '[' + host + ']';
+        }
+        console.log(`Dispatch Server listening on http://${host}:${port}`);
+    });
 }
-
-app.use(morgan(':remote-addr :remote-user :method :url :status :res[content-length] :response-time ms'));
-app.get('/post_work', async (req, res) => {
-    await dispatchRequest(req, res);
-});
-app.get('/healthz', (req, res) => {
-    res.status(200).send('Ok');
-});
-
-let server = app.listen(IN_PORT, () => {
-    let host = server.address().address;
-    let port = server.address().port;
-    if (host[0] == ':') {
-        host = '[' + host + ']';
-    }
-    console.log(`Dispatch Server listening on http://${host}:${port}`);
-});

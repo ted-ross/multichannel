@@ -1,6 +1,7 @@
 {
   "name": "dispatch",
   "version": "1.0.0",
+  "type": "module",
   "description": "HTTP Request dispatcher/redirector based on country code",
   "main": "index.js",
   "scripts": {
@@ -10,7 +11,6 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@kubernetes/client-node": "^1.1.0",
-    "axios": "^1.8.3",
     "express": "^4.21.2",
     "fs": "^0.0.1-security",
     "morgan": "^1.10.0",

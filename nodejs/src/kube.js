@@ -19,10 +19,10 @@
 
 "use strict";
 
-const yaml = require('yaml');
-const fs   = require('fs');
-const Log  = require('./log.js').Log;
-var   k8s;
+import { KubeConfig, KubernetesObjectApi, Watch, CoreV1Api, AppsV1Api, CustomObjectsApi } from '@kubernetes/client-node';
+import "yaml";
+import "fs";
+import { Log } from "./log.js";
 
 const WATCH_ERROR_THRESHOLD               = 10;   // Log if threshold is exceeded in a minute's time.
 const META_ANNOTATION_SKUPPERX_CONTROLLED = "dmc-controlled";
@@ -39,7 +39,7 @@ var watchErrorCount = 0;
 var lastWatchError;
 var namespace = 'default';
 
-exports.Annotation = function(obj, key) {
+export function Annotation(obj, key) {
     if (obj && obj.metadata && obj.metadata.annotations) {
         return obj.metadata.annotations[key];
     }
@@ -47,11 +47,11 @@ exports.Annotation = function(obj, key) {
     return undefined;
 }
 
-exports.Controlled = function(obj) {
+export function Controlled(obj) {
     return exports.Annotation(obj, META_ANNOTATION_SKUPPERX_CONTROLLED) == 'true';
 }
 
-exports.Namespace = function() {
+export function Namespace() {
     return namespace;
 }
 
@@ -69,23 +69,21 @@ const logWatchErrors = function() {
     setTimeout(logWatchErrors, 60 * 1000);
 }
 
-exports.Start = async function (in_cluster) {
-    k8s = await import('@kubernetes/client-node');
-
-    kc = new k8s.KubeConfig();
+export async function KubeStart(in_cluster) {
+    kc = new KubeConfig();
     if (in_cluster) {
         kc.loadFromCluster();
     } else {
         kc.loadFromDefault();
     }
 
-    client    = k8s.KubernetesObjectApi.makeApiClient(kc);
-    v1Api     = kc.makeApiClient(k8s.CoreV1Api);
-    v1AppApi  = kc.makeApiClient(k8s.AppsV1Api);
-    customApi = kc.makeApiClient(k8s.CustomObjectsApi);
+    client    = KubernetesObjectApi.makeApiClient(kc);
+    v1Api     = kc.makeApiClient(CoreV1Api);
+    v1AppApi  = kc.makeApiClient(AppsV1Api);
+    customApi = kc.makeApiClient(CustomObjectsApi);
 
-    configMapWatch = new k8s.Watch(kc);
-    siteWatch      = new k8s.Watch(kc);
+    configMapWatch = new Watch(kc);
+    siteWatch      = new Watch(kc);
 
     try {
         if (in_cluster) {
@@ -105,7 +103,7 @@ exports.Start = async function (in_cluster) {
     setTimeout(logWatchErrors, 60 * 1000);
 }
 
-exports.GetSites = async function() {
+export async function GetSites() {
     const list = await customApi.listNamespacedCustomObject(
         'skupper.io',
         'v2alpha1',
@@ -115,7 +113,7 @@ exports.GetSites = async function() {
     return list.body.items;
 }
 
-exports.LoadSite = async function(name) {
+export async function LoadSite(name) {
     const site = await customApi.getNamespacedCustomObject(
         'skupper.io',
         'v2alpha1',
@@ -126,7 +124,7 @@ exports.LoadSite = async function(name) {
     return site.body;
 }
 
-exports.GetListeners = async function() {
+export async function GetListeners() {
     const list = await customApi.listNamespacedCustomObject(
         'skupper.io',
         'v2alpha1',
@@ -136,7 +134,7 @@ exports.GetListeners = async function() {
     return list.body.items;
 }
 
-exports.LoadListener = async function(name) {
+export async function LoadListener(name) {
     const listener = await customApi.getNamespacedCustomObject(
         'skupper.io',
         'v2alpha1',
@@ -147,7 +145,7 @@ exports.LoadListener = async function(name) {
     return listener.body;
 }
 
-exports.DeleteListener = async function(name) {
+export async function DeleteListener(name) {
     await customApi.deleteNamespacedCustomObject(
         'skupper.io',
         'v2alpha1',
@@ -157,31 +155,31 @@ exports.DeleteListener = async function(name) {
     );
 }
 
-exports.GetConfigmaps = async function() {
+export async function GetConfigmaps() {
     let list = await v1Api.listNamespacedConfigMap(namespace);
     return list.body.items;
 }
 
-exports.LoadConfigmap = async function(name) {
+export async function LoadConfigmap(name) {
     let secret = await v1Api.readNamespacedConfigMap(name, namespace);
     return secret.body;
 }
 
-exports.GetServices = async function() {
+export async function GetServices() {
     let list = await v1Api.listNamespacedService(namespace);
     return list.body.items;
 }
 
-exports.LoadService = async function(name) {
+export async function LoadService(name) {
     let service = await v1Api.readNamespacedService(name, namespace);
     return service.body;
 }
 
-exports.ReplaceService = async function(name, obj) {
+export async function ReplaceService(name, obj) {
     await v1Api.replaceNamespacedService(name, namespace, obj);
 }
 
-exports.DeleteService = async function(name) {
+export async function DeleteService(name) {
     await v1Api.deleteNamespacedService(name, namespace);
 }
 
@@ -206,7 +204,7 @@ const startWatchSites = function() {
     )
 }
 
-exports.WatchSites = function(callback) {
+export function WatchSites(callback) {
     siteWatches.push(callback);
     if (siteWatches.length == 1) {
         startWatchSites();
@@ -235,7 +233,7 @@ const startWatchConfigMaps = function() {
     )
 }
 
-exports.WatchConfigMaps = function(callback) {
+export function WatchConfigMaps(callback) {
     configMapWatches.push(callback);
     if (configMapWatches.length == 1) {
         startWatchConfigMaps();
@@ -263,14 +261,14 @@ const startWatchServices = function() {
     )
 }
 
-exports.WatchServices = function(callback) {
+export function WatchServices(callback) {
     serviceWatches.push(callback);
     if (serviceWatches.length == 1) {
         startWatchServices();
     }
 }
 
-exports.ApplyObject = async function(obj) {
+export async function ApplyObject(obj) {
     try {
         if (obj.metadata.annotations == undefined) {
             obj.metadata.annotations = {};
@@ -284,7 +282,7 @@ exports.ApplyObject = async function(obj) {
     }
 }
 
-exports.ApplyYaml = async function(yamldoc) {
+export async function ApplyYaml(yamldoc) {
     let obj = yaml.parse(yamldoc);
     return await ApplyObject(obj);
 }

@@ -19,10 +19,9 @@
 
 "use strict";
 
-const kube        = require('./kube.js');
-const apiserver   = require('./apiserver.js');
-const Log         = require('./log.js').Log;
-const Flush       = require('./log.js').Flush;
+import { KubeStart } from "./kube.js";
+import { ApiStart }  from "./apiserver.js";
+import { Log }       from "./log.js";
 
 const VERSION     = '0.1.0';
 const STANDALONE  = (process.env.DMC_STANDALONE || 'NO') == 'YES';
@@ -33,14 +32,13 @@ Log(`Standalone : ${STANDALONE}`);
 //
 // This is the main program startup sequence.
 //
-exports.Main = async function() {
+export async function Main() {
     try {
-        await kube.Start(!STANDALONE);
-        await apiserver.Start();
+        await KubeStart(!STANDALONE);
+        await ApiStart();
         Log("[Controller initialization completed successfully]");
     } catch (reason) {
         Log(`Controller initialization failed: ${reason.stack}`)
-        Flush();
         process.exit(1);
     };
 };

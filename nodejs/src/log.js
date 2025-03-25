@@ -19,18 +19,9 @@
 
 "use strict";
 
-const util = require('util');
 
-exports.Log = function(thing) {
+export function Log(text) {
     let now = new Date().toISOString();
-    var text;
-    if (typeof(thing) == "string") {
-        text = util.format("%s", thing);
-    } else {
-        text = util.format("%j", thing);
-    }
     console.log(now + " " + text);
 }
 
-exports.Flush = function() {
-}

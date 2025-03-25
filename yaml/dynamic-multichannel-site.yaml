@@ -1,0 +1,18 @@
+apiVersion: skupperx.io/compose/v1alpha1
+kind: Block
+metadata:
+  name: dynamic-multichannel-site
+type: skupperx.io/connector
+spec:
+  interfaces:
+  - name: manage
+    role: multichannel
+  - name: connect
+    role: connect
+  body:
+    address:
+      keyPrefix: mchan-${site}
+      distribution: balanced
+      priority: default
+    transport: tcp
+    protocol: tcp

@@ -1,0 +1,19 @@
+{
+  "name": "dispatch",
+  "version": "1.0.0",
+  "description": "HTTP Request dispatcher/redirector based on country code",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "T. L. Ross",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@kubernetes/client-node": "^1.1.0",
+    "axios": "^1.8.3",
+    "express": "^4.21.2",
+    "fs": "^0.0.1-security",
+    "morgan": "^1.10.0",
+    "yaml": "^2.7.0"
+  }
+}

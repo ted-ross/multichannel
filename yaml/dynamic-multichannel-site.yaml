@@ -10,9 +10,12 @@ spec:
   - name: connect
     role: connect
   body:
-    address:
-      keyPrefix: mchan-${site}
-      distribution: balanced
-      priority: default
-    transport: tcp
-    protocol: tcp
+    config:
+      serviceName: tbd
+      address:
+        keyPrefix: ${service}-${site}
+        distribution: balanced
+        priority: default
+      transport: tcp
+      protocol: tcp
+    kubeTemplate:

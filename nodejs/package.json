@@ -1,5 +1,5 @@
 {
-  "name": "dispatch",
+  "name": "dynamic-multi-channel",
   "version": "1.0.0",
   "type": "module",
   "description": "HTTP Request dispatcher/redirector based on country code",

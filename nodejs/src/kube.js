@@ -20,8 +20,8 @@
 "use strict";
 
 import { KubeConfig, KubernetesObjectApi, Watch, CoreV1Api, AppsV1Api, CustomObjectsApi } from '@kubernetes/client-node';
-import "yaml";
-import "fs";
+import yaml    from "yaml";
+import fs      from "fs";
 import { Log } from "./log.js";
 
 const WATCH_ERROR_THRESHOLD               = 10;   // Log if threshold is exceeded in a minute's time.
@@ -104,13 +104,13 @@ export async function KubeStart(in_cluster) {
 }
 
 export async function GetSites() {
-    const list = await customApi.listNamespacedCustomObject(
-        'skupper.io',
-        'v2alpha1',
-        namespace,
-        'sites'
-    );
-    return list.body.items;
+    const list = await customApi.listNamespacedCustomObject({
+        group     : 'skupper.io',
+        version   : 'v2alpha1',
+        namespace : namespace,
+        plural    : 'sites',
+    });
+    return list.items;
 }
 
 export async function LoadSite(name) {

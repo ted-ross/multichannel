@@ -17,19 +17,13 @@
  under the License.
 */
 
-//
-// This component is a service that runs as a front-end proxy for inbound web requests.
-// It's purpose is to redirect web requests to the appropriate Skupper service based on
-// the absense, presense, and content ot he 'x-country'code' header in the request.
-//
-
 "use strict";
 
 import express from "express";
 import morgan  from "morgan";
 
 const IN_PORT  = 8088;
-
+const PREFIX   = '/api/v1alpha1/';
 
 export async function ApiStart() {
     const app = express();
@@ -42,7 +36,23 @@ export async function ApiStart() {
 
     app.use(morgan(':remote-addr :remote-user :method :url :status :res[content-length] :response-time ms'));
 
-    app.get('/api', async (req, res) => {
+    app.get(PREFIX + 'services', async (req, res) => {
+        res.status(200).send('Ok');
+    });
+
+    app.get(PREFIX + 'services/:sname/instances', async (req, res) => {
+        res.status(200).send('Ok');
+    });
+
+    app.get(PREFIX + 'services/:sname/instances/:iname', async (req, res) => {
+        res.status(200).send('Ok');
+    });
+
+    app.put(PREFIX + 'services/:sname/instances/:iname/activate', async (req, res) => {
+        res.status(200).send('Ok');
+    });
+
+    app.put(PREFIX + 'services/:sname/instances/:iname/deactivate', async (req, res) => {
         res.status(200).send('Ok');
     });
 

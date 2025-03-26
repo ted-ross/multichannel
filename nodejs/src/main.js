@@ -19,9 +19,10 @@
 
 "use strict";
 
-import { KubeStart } from "./kube.js";
-import { ApiStart }  from "./apiserver.js";
-import { Log }       from "./log.js";
+import { KubeStart }       from "./kube.js";
+import { ApiStart }        from "./apiserver.js";
+import { ReconcilerStart } from "./reconciler.js";
+import { Log }             from "./log.js";
 
 const VERSION     = '0.1.0';
 const STANDALONE  = (process.env.DMC_STANDALONE || 'NO') == 'YES';
@@ -36,6 +37,7 @@ export async function Main() {
     try {
         await KubeStart(!STANDALONE);
         await ApiStart();
+        await ReconcilerStart();
         Log("[Controller initialization completed successfully]");
     } catch (reason) {
         Log(`Controller initialization failed: ${reason.stack}`)

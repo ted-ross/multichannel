@@ -20,57 +20,51 @@
 "use strict";
 
 import { Service, Listener } from "./listeners.js";
-import { LoadConfigmap, GetSites }     from "./kube.js";
+import { WatchConfigMaps, WatchSites, GetConfigmaps } from "./kube.js";
 import { Log }               from "./log.js";
 
-const CONFIG_MAP_NAME = "dynamic-multichannel";
-
+const META_LABEL = "skupper.io/dynamic-multichannel";
 var services = {};
 
 const reconcileConfig = async function() {
-    try {
-        var probationServices = {};
-        for (const [name, obj] of Object.entries(services)) {
-            probationServices[name] = obj;
-        }
+    var probationServices = {};
+    for (const [name, obj] of Object.entries(services)) {
+        probationServices[name] = obj;
+    }
 
-        const config = await LoadConfigmap(CONFIG_MAP_NAME);
-        for (const [key, value] of Object.entries(config.data)) {
-            probationServices.delete(key);
-            if (!services[key]) {
-                services[key] = new Service(key, value);
-            }
-        }
+    let   myCmaps = [];
+    const cmaps   = await GetConfigmaps();
 
-        for (const [name, obj] of Object.entries(probationServices)) {
-            services.delete(name);
-            obj.destroy();
+    for (const cm of cmaps) {
+        if (cm.metadata.labels && cm.metadata.labels[META_LABEL]) {
+            myCmaps.push(cm);
         }
-    } catch (error) {
-        Log(`Configmap ${CONFIG_MAP_NAME} not found`);
+    }
+
+    for (const cm of myCmaps) {
+        const name = cm.metadata.name;
+        delete probationServices[name];
+        if (!services[name]) {
+            services[name] = new Service(name, cm.data);
+        }
+    }
+
+    for (const [name, obj] of Object.entries(probationServices)) {
+        delete services[name];
+        obj.destroy();
     }
 }
 
-const getRoutingKeys = async function() {
+const getRoutingKeys = function(siteStatus) {
     let keys    = [];
-    const sites = await GetSites();
-    if (sites.length > 1) {
-        Log(`Expecting no more than one site, got ${sites.length}`);
-    } else if (sites.length == 1) { 
-        const site = sites[0];
-        try {
-            const netsites = site.status.network;
-            for (const netsite of netsites) {
-                if (netsite.services) {
-                    for (const netsiteservice of netsite.services) {
-                        if (netsiteservice.connectors) {
-                            keys.push(netsiteservice.routingKey);
-                        }
-                    }
+    const netsites = siteStatus.network;
+    for (const netsite of netsites) {
+        if (netsite.services) {
+            for (const netsiteservice of netsite.services) {
+                if (netsiteservice.connectors) {
+                    keys.push(netsiteservice.routingKey);
                 }
             }
-        } catch (error) {
-            Log(`Exception caught while extracting routing keys from site ${site.metadata.name}: ${error.message}`);
         }
     }
 
@@ -81,19 +75,35 @@ const reconcileKeys = async function() {
 
 }
 
-export async function ReconcilerStart() {
+const onConfigWatch = async function(action, config) {
+    if (config.metadata.labels && config.metadata.labels[META_LABEL]) {
+        await reconcileConfig();
+    }
+}
+
+const onSiteWatch = async function(action, site) {
     //
-    // First, load the desired state from the config map and the current routing keys.
+    // Get all of the current connector routing keys in the network
     //
-    await reconcileConfig();
-    const keys = await getRoutingKeys();
-    console.log(keys);
+    const keys = getRoutingKeys(site.status);
 
     //
-    // Next, reconcile inbound to set the active flag on listeners that have corresponding CRs.
     //
+    //
+    for (const svc of Object.values(services)) {
+        const [toAdd, toDel] = svc.reconcileKeys(keys);
+    }
+}
+
+export async function ReconcilerStart() {
+    //
+    // First, load the desired service state from the config maps.
+    //
+    reconcileConfig();
 
     //
     // Establish watches to detect changes in configuration and the set of routing keys.
     //
+    WatchConfigMaps(onConfigWatch);
+    WatchSites(onSiteWatch);
 }

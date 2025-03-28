@@ -24,8 +24,8 @@ import yaml    from "yaml";
 import fs      from "fs";
 import { Log } from "./log.js";
 
-const WATCH_ERROR_THRESHOLD               = 10;   // Log if threshold is exceeded in a minute's time.
-const META_ANNOTATION_SKUPPERX_CONTROLLED = "dmc-controlled";
+const WATCH_ERROR_THRESHOLD      = 10;   // Log if threshold is exceeded in a minute's time.
+export const META_ANNOTATION_CONTROLLED = "dmc-controlled";
 
 var kc;
 var client;
@@ -48,7 +48,7 @@ export function Annotation(obj, key) {
 }
 
 export function Controlled(obj) {
-    return exports.Annotation(obj, META_ANNOTATION_SKUPPERX_CONTROLLED) == 'true';
+    return exports.Annotation(obj, META_ANNOTATION_CONTROLLED) == 'true';
 }
 
 export function Namespace() {
@@ -156,13 +156,13 @@ export async function DeleteListener(name) {
 }
 
 export async function GetConfigmaps() {
-    let list = await v1Api.listNamespacedConfigMap(namespace);
-    return list.body.items;
+    let list = await v1Api.listNamespacedConfigMap({namespace: namespace});
+    return list.items;
 }
 
 export async function LoadConfigmap(name) {
-    let secret = await v1Api.readNamespacedConfigMap(name, namespace);
-    return secret.body;
+    let cm = await v1Api.readNamespacedConfigMap({name: name, namespace: namespace});
+    return cm;
 }
 
 export async function GetServices() {
@@ -199,6 +199,7 @@ const startWatchSites = function() {
                 watchErrorCount++;
                 lastWatchError = `Sites: ${err}`;
             }
+            console.log('RESTARTING SITE WATCHES');
             startWatchSites();
         }
     )
@@ -273,7 +274,7 @@ export async function ApplyObject(obj) {
         if (obj.metadata.annotations == undefined) {
             obj.metadata.annotations = {};
         }
-        obj.metadata.annotations[META_ANNOTATION_SKUPPERX_CONTROLLED] = "true";
+        obj.metadata.annotations[META_ANNOTATION_CONTROLLED] = "true";
         obj.metadata.namespace = namespace;
         Log(`Creating resource: ${obj.kind} ${obj.metadata.name}`);
         return await client.create(obj);

@@ -19,6 +19,8 @@
 
 "use strict";
 
+import { META_ANNOTATION_CONTROLLED } from "./kube.js";
+
 //
 // Service
 //
@@ -26,9 +28,11 @@
 //   connectors and an API endpoint that can be used by a client to manage service points for available destinations.
 //
 export class Service {
-    constructor(name, pattern) {
+    constructor(name, config) {
+        console.log(`New Service(${name}, ${config.prefix} ${config.port})`);
         this.name      = name;
-        this.pattern   = pattern;
+        this.prefix    = config.prefix;
+        this.port      = config.port;
         this.listeners = {};
     }
 
@@ -51,6 +55,7 @@ export class Service {
     }
 
     destroy() {
+        console.log(`Destroy Service(${this.name})`);
         this.listeners = {};
     }
 }
@@ -61,31 +66,47 @@ export class Service {
 //   A Listener tracks a potentially (if active) existing Skupper listener that is controlled by this component.
 //
 export class Listener {
-    constructor(service, name, host, port, routingKey) {
+    constructor(service, name, routingKey) {
         this.service    = service;
         this.name       = name;
-        this.host       = host;
-        this.port       = port;
+        this.host       = undefined;
         this.routingKey = routingKey;
         this.active     = false;
-        this.metadata   = {};      // keys/values of the routingKey variables
     }
 
     kubeObject() {
         return {
+            apiVersion : 'skupper.io/v2alpha1',
+            kind       : 'Listener',
+            metadata: {
+                name : this.objectName(),
+            },
+            spec: {
+                host       : this.host,
+                port       : this.service.port,
+                routingKey : this.routingKey,
+            },
         };
     }
 
-    setActive(value) {
-        this.active = !!value;
+    objectName() {
+        return "dmc-" + this.name;
+    }
+
+    activate() {
+        if (!this.active) {
+            this.active = true;
+            this.host   = this.service.name + "-XXX";
+        }
+    }
+
+    deactivate() {
+        this.active = false;
+        this.host   = undefined;
     }
 
     isActive() {
         return this.active;
-    }
-
-    getMetadata() {
-        return this.metadata;
     }
 
     getHostPort() {
